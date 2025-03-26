@@ -264,9 +264,6 @@ export default function PokemonSearch() {
                     Favorites
                 </button>
             </div>
-
-            <button onClick={() => go("gothitelle")}>go</button>
-
             <div
                 id="infoContainer"
                 dangerouslySetInnerHTML={{ __html: infoContainer }}//
