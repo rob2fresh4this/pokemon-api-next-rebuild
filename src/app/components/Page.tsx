@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { savedToLocalStorage, getFromLocalStorage, removeFromLocalStorage } from './local_storage'
-import { get } from 'http';
 
 export default function PokemonSearch() {
     const [searchValue, setSearchValue] = useState('');
     const [infoContainer, setInfoContainer] = useState('');
     const [favoriteBtn, setFavoriteBtn] = useState('');
     const [currentNameOfPokemon, setCurrentNameOfPokemon] = useState<string>('');
+    const [newValue, setNewValue] = useState<string>('');
+    
 
     async function getPokemonData(name: string) {
         const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${name}`);
@@ -91,9 +92,10 @@ export default function PokemonSearch() {
 
         const evolutionPath = await getEvolutionChain(data.id);
         updateInfoContainer(data, locationInfo, evolutionPath);
-        updateFavoriteButton(data.name.toLowerCase());// comeback to this latter
-        setSearchValue('');
+
+        setSearchValue(''); // Clear search input after successful search
     }
+
 
     async function randomPoki() {
         const randomId: number = Math.floor(Math.random() * 649) + 1;
@@ -108,23 +110,25 @@ export default function PokemonSearch() {
     }
 
     function remove(pokemonName: string) {
-        // Handle removing the Pokémon from the favorites list
         console.log(`Removing ${pokemonName} from favorites`);
         removeFromLocalStorage(pokemonName);
-        // Remove the Pokémon from the UI
-        const buttonElement = document.querySelector(`[data-name="${pokemonName}"]`);
-        if (buttonElement) {
-            buttonElement.closest('.flex')?.remove(); // Removes the parent container
-        }
+        setInfoContainer("");
+        displayFavorites();
     }
+    
 
-    function go(pokemonName: string) {
-        // Handle searching for the Pokémon
-        console.log(`Going to Pokémon ${pokemonName}`);
+    const go = (pokemonName: string) => {
+        console.log(`Going to ${pokemonName}`);
         setSearchValue(pokemonName);
-        submit(); // Trigger the search functionality
+        submit();
     }
 
+    
+
+    useEffect(() => {
+        (window as any).remove = remove;
+        (window as any).go = go;
+    }, []);
 
     function displayFavorites() {
         console.log(`Display favorites button clicked`)
@@ -141,8 +145,8 @@ export default function PokemonSearch() {
                     <div class="flex items-center justify-between border-b p-4 w-[90%] md:w-[40%] m-auto bg-[#4556D0]">
                         <h2 class="text-[white]">${data.name}</h2>
                         <div>
-                            <button onClick={() => remove(data.name)} class="bg-red-500 text-white p-2 rounded-md hover:bg-red-700 remove_from_favorites" data-name="${data.name}">Remove</button>
-                            <button onClick={() => go(data.name)} class="bg-green-500 text-white p-2 rounded-md hover:bg-green-700 go_to_that_pokemon" data-name="${data.name}">Go</button>
+                            <button onclick="remove('${data.name}')" class="bg-red-500 text-white p-2 rounded-md hover:bg-red-700 remove_from_favorites" data-name="${data.name}">Remove</button>
+                            <button onclick="go('${data.name}')" class="bg-green-500 text-white p-2 rounded-md hover:bg-green-700 go_to_that_pokemon" data-name="${data.name}">Go</button>
                         </div>
                     </div>
                 `;
@@ -165,15 +169,17 @@ export default function PokemonSearch() {
                 return;
             }
             savedToLocalStorage(pokemon);
+
         }
         updateFavoriteButton(pokemon);
     }
 
-    const handleSearch = (e: any) => {
+    const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {// react keyboard event
         if (e.key === 'Enter') {
-            submit();
+            submit();  // Trigger the submit function
         }
     };
+
 
     function updateFavoriteButton(pokemon: string) {
         let favorites = getFromLocalStorage();
@@ -217,17 +223,15 @@ export default function PokemonSearch() {
                             </svg>
                         </div>
                         <input
-                            type="search"
-                            id="userinput"
+                            type="text"
+                            value={searchValue}  // Bind to state
+                            onChange={(e) => setSearchValue(e.target.value)}  // Update state on input change
+                            onKeyDown={handleSearch}  // Trigger search when Enter is pressed
+                            placeholder="Search Pokémon..."
                             className="block w-full p-4 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-white focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Pokémon name"
-                            value={searchValue}
-                            onChange={(e) => setSearchValue(e.target.value)}
-                            onKeyDown={handleSearch}
                         />
+
                         <button
-                            type="button"
-                            id="submit"
                             className="text-white absolute end-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2"
                             onClick={submit}
                         >
@@ -260,6 +264,8 @@ export default function PokemonSearch() {
                     Favorites
                 </button>
             </div>
+
+            <button onClick={() => go("gothitelle")}>go</button>
 
             <div
                 id="infoContainer"
