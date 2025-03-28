@@ -2,14 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { savedToLocalStorage, getFromLocalStorage, removeFromLocalStorage } from './local_storage'
+import { on } from 'events';
 
 export default function PokemonSearch() {
     const [searchValue, setSearchValue] = useState('');
     const [infoContainer, setInfoContainer] = useState('');
     const [favoriteBtn, setFavoriteBtn] = useState('');
     const [currentNameOfPokemon, setCurrentNameOfPokemon] = useState<string>('');
-    const [newValue, setNewValue] = useState<string>('');
-    
 
     async function getPokemonData(name: string) {
         const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${name}`);
@@ -20,6 +19,7 @@ export default function PokemonSearch() {
         }
         const data = await response.json();
         setCurrentNameOfPokemon(data.name);
+        console.log(`Pokemon found: ${data.name}`);
         return data;
     }
 
@@ -77,7 +77,7 @@ export default function PokemonSearch() {
 
     async function submit() {
         const nameOfPokemon = searchValue.toLowerCase();
-        if (!nameOfPokemon) return;
+        if (!nameOfPokemon) return console.log('No Pokémon name provided');
         const data = await getPokemonData(nameOfPokemon);
         if (data.id > 649) {
             console.log(`Pokemon not found in Gen 1-5 ${data.id}`);
@@ -115,15 +115,23 @@ export default function PokemonSearch() {
         setInfoContainer("");
         displayFavorites();
     }
-    
+
+    const [onORoff, setOnORoff] = useState(false);
 
     const go = (pokemonName: string) => {
-        console.log(`Going to ${pokemonName}`);
+        console.log(`Going to ${pokemonName}`);// step 1 console log
         setSearchValue(pokemonName);
-        submit();
+        setOnORoff(true);
+        setTimeout(setOnORoff, 1000, false); // Reset onORoff after 1 second
     }
 
-    
+    useEffect(() => {
+        console.log(`onORoff changed: ${onORoff}`); 
+        if (searchValue) {
+            submit();
+            console.log(`it fired maybe it worked`)
+        }
+    }, [onORoff]); // Trigger submit when onORoff changes
 
     useEffect(() => {
         (window as any).remove = remove;
