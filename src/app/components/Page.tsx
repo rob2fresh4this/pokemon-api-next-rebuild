@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { savedToLocalStorage, getFromLocalStorage, removeFromLocalStorage } from './local_storage'
-import { on } from 'events';
+import { get } from 'http';
 
 export default function PokemonSearch() {
     const [searchValue, setSearchValue] = useState('');
@@ -10,8 +10,53 @@ export default function PokemonSearch() {
     const [favoriteBtn, setFavoriteBtn] = useState('');
     const [currentNameOfPokemon, setCurrentNameOfPokemon] = useState<string>('');
 
+    // trying auto-suggest
+    const [suggestions, setSuggestions] = useState<string[]>([]);// suggestion value for auto-suggest
+    const [pokemonList, setPokemonList] = useState<string[]>([]);// all Pokémon names saved into a state variable for auto-suggest
+
+    useEffect(() => {
+        async function fetchPokemonList() {
+            const response = await fetch("https://pokeapi.co/api/v2/pokemon?limit=649")
+            const data = await response.json()
+            setPokemonList(data.results.map((p: any) => p.name));
+            console.log(data.results.map((p: any) => p.name));
+        }
+        fetchPokemonList()
+    }, []);
+
+    useEffect(() => {
+        if (!searchValue) {
+            setSuggestions([]);
+            return;
+        }
+        setSuggestions(
+            pokemonList.filter((name) => name.startsWith(searchValue.toLowerCase())).slice(0, 5) // Limit results
+        );
+    }, [searchValue, pokemonList]);
+
+    const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchValue(event.target.value);
+    };
+
+    const handleSelectPokemon = (name: string) => {
+        setSearchValue(name);
+        getPokemonData(name).then(async (data) => {
+            if (data) {
+                const locations = await getLocationData(data.id);
+                let locationInfo = locations.length > 0
+                    ? `<p>Location: ${locations[0].location_area.name}</p>`
+                    : `<p>Location data not available for this Pokémon.</p>`;
+                updateInfoContainer(data, locationInfo, await getEvolutionChain(data.id));
+                setCurrentNameOfPokemon(data.name);
+                updateFavoriteButton(data.name.toLowerCase());
+            }
+        })
+        setSuggestions([]); // Hide suggestions
+        setSearchValue(''); // Clear input after selection
+    };
+
     async function getPokemonData(name: string) {
-        const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${name}`);
+        const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${name.toLocaleLowerCase()}`);
         if (!response.ok) {
             console.log('Pokemon not found');
             setInfoContainer(`<div class="flex justify-center text-white"><p>Pokémon not found</p></div>`)
@@ -126,7 +171,7 @@ export default function PokemonSearch() {
     }
 
     useEffect(() => {
-        console.log(`onORoff changed: ${onORoff}`); 
+        console.log(`onORoff changed: ${onORoff}`);
         if (searchValue) {
             submit();
             console.log(`it fired maybe it worked`)
@@ -233,7 +278,7 @@ export default function PokemonSearch() {
                         <input
                             type="text"
                             value={searchValue}  // Bind to state
-                            onChange={(e) => setSearchValue(e.target.value)}  // Update state on input change
+                            onChange={handleInputChange}  // Update state on input change
                             onKeyDown={handleSearch}  // Trigger search when Enter is pressed
                             placeholder="Search Pokémon..."
                             className="block w-full p-4 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-white focus:ring-blue-500 focus:border-blue-500"
@@ -246,6 +291,19 @@ export default function PokemonSearch() {
                             Search
                         </button>
                     </div>
+                    {suggestions.length > 0 && (
+                        <ul className="border bg-white shadow rounded mt-1 absolute w-64">
+                            {suggestions.map((name) => (
+                                <li
+                                    key={name}
+                                    onClick={() => { handleSelectPokemon(name); console.log(name); }}
+                                    className="p-2 cursor-pointer hover:bg-gray-200"
+                                >
+                                    {name}
+                                </li>
+                            ))}
+                        </ul>
+                    )}
                 </div>
                 <div className="flex justify-center mt-[20px] mb-[20px] sm:mt-0 sm:mb-0">
                     <button
