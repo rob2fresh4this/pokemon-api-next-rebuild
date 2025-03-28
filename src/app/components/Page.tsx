@@ -1,8 +1,16 @@
 'use client';
 
+// At the top of your component or in global.d.ts
+declare global {
+    interface Window {
+        remove: (pokemonName: string) => void; // Add the argument for pokemonName
+        go: (pokemonName: string) => void; // Add the argument for pokemonName
+    }
+}
+
+
 import { useEffect, useState } from 'react';
 import { savedToLocalStorage, getFromLocalStorage, removeFromLocalStorage } from './local_storage'
-import { get } from 'http';
 
 export default function PokemonSearch() {
     const [searchValue, setSearchValue] = useState('');
@@ -14,12 +22,16 @@ export default function PokemonSearch() {
     const [suggestions, setSuggestions] = useState<string[]>([]);// suggestion value for auto-suggest
     const [pokemonList, setPokemonList] = useState<string[]>([]);// all Pokémon names saved into a state variable for auto-suggest
 
+    interface Pokemon {
+        name: string;
+    }
+
     useEffect(() => {
         async function fetchPokemonList() {
             const response = await fetch("https://pokeapi.co/api/v2/pokemon?limit=649")
             const data = await response.json()
-            setPokemonList(data.results.map((p: any) => p.name));
-            console.log(data.results.map((p: any) => p.name));
+            setPokemonList(data.results.map((p: Pokemon) => p.name));
+            console.log(data.results.map((p: Pokemon) => p.name));
         }
         fetchPokemonList()
     }, []);
@@ -43,7 +55,7 @@ export default function PokemonSearch() {
         getPokemonData(name).then(async (data) => {
             if (data) {
                 const locations = await getLocationData(data.id);
-                let locationInfo = locations.length > 0
+                const locationInfo: string = locations.length > 0
                     ? `<p>Location: ${locations[0].location_area.name}</p>`
                     : `<p>Location data not available for this Pokémon.</p>`;
                 updateInfoContainer(data, locationInfo, await getEvolutionChain(data.id));
@@ -74,6 +86,13 @@ export default function PokemonSearch() {
         return data;
     }
 
+    interface EvolutionStage {
+        species: {
+            name: string;
+        };
+        evolves_to: EvolutionStage[];
+    }
+
     async function getEvolutionChain(pokemonId: number) {
         const speciesResponse = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${pokemonId}`);
         const speciesData = await speciesResponse.json();
@@ -82,20 +101,62 @@ export default function PokemonSearch() {
         return extractEvolutionChain(evolutionData.chain);
     }
 
-    function extractEvolutionChain(chain: any) {
-        let evolutionStages: string[] = [];
-        function getEvolutionStages(evolutionChain: any) {
+    function extractEvolutionChain(chain: EvolutionStage): string {
+        const evolutionStages: string[] = [];
+
+        function getEvolutionStages(evolutionChain: EvolutionStage) {
             if (!evolutionChain) return;
             evolutionStages.push(evolutionChain.species.name); // Add current evolution stage
             if (evolutionChain.evolves_to.length > 0) {
                 getEvolutionStages(evolutionChain.evolves_to[0]); // Get the next stage
             }
         }
+
         getEvolutionStages(chain);
         return evolutionStages.length > 1 ? evolutionStages.join(" → ") : "N/A"; // If only one stage, return N/A
     }
 
-    function updateInfoContainer(data: any, locationInfo: string, evolutionPath: string) {
+
+    interface Ability {
+        ability: {
+            name: string;
+        };
+    }
+
+    interface Type {
+        type: {
+            name: string;
+        };
+    }
+
+    interface Move {
+        move: {
+            name: string;
+        };
+    }
+
+    interface Sprites {
+        other: {
+            "official-artwork": {
+                front_default: string;
+                front_shiny: string;
+            };
+        };
+    }
+
+    interface PokemonData {
+        id: number;
+        name: string;
+        height: number;
+        weight: number;
+        base_experience: number;
+        abilities: Ability[];
+        types: Type[];
+        moves: Move[];
+        sprites: Sprites;
+    }
+
+    function updateInfoContainer(data: PokemonData, locationInfo: string, evolutionPath: string) {
         setInfoContainer(`
             <div class="flex flex-col lg:flex-row justify-between w-[90%] lg:w-[80%] m-auto">
                 <div class="w-[100%] lg:w-[20%] flex flex-row lg:flex-col  justify-between">
@@ -108,10 +169,10 @@ export default function PokemonSearch() {
                     <p>Height: ${data.height}</p>
                     <p>Weight: ${data.weight}</p>
                     <p>Base Experience: ${data.base_experience}</p>
-                    <p>Abilities: ${data.abilities.map((ability: { ability: { name: string } }) => ability.ability.name).join(', ')}</p>
-                    <p>Types: ${data.types.map((type: { type: { name: string } }) => type.type.name).join(', ')}</p>
+                    <p>Abilities: ${data.abilities.map((ability) => ability.ability.name).join(', ')}</p>
+                    <p>Types: ${data.types.map((type) => type.type.name).join(', ')}</p>
                     <div class="w-[100%] h-[100px] overflow-y-auto border p-4">
-                        <p>Moves: ${data.moves.map((move: { move: { name: string } }) => move.move.name).join(', ')}</p>
+                        <p>Moves: ${data.moves.map((move) => move.move.name).join(', ')}</p>
                     </div>
                     ${locationInfo}
                     <p>Evolutionary Path: ${evolutionPath}</p>
@@ -119,6 +180,7 @@ export default function PokemonSearch() {
             </div>
         `);
     }
+
 
     async function submit() {
         const nameOfPokemon = searchValue.toLowerCase();
@@ -131,7 +193,7 @@ export default function PokemonSearch() {
         }
 
         const locations = await getLocationData(data.id);
-        let locationInfo = locations.length > 0
+        const locationInfo = locations.length > 0
             ? `<p>Location: ${locations[0].location_area.name}</p>`
             : `<p>Location data not available for this Pokémon.</p>`;
 
@@ -146,7 +208,7 @@ export default function PokemonSearch() {
         const randomId: number = Math.floor(Math.random() * 649) + 1;
         const data = await getPokemonData(randomId.toString());
         const locations = await getLocationData(randomId);
-        let locationInfo = locations.length > 0
+        const locationInfo = locations.length > 0
             ? `<p>Location: ${locations[0].location_area.name}</p>`
             : `<p>Location data not available for this Pokémon.</p>`;
         const evolutionPath = await getEvolutionChain(data.id);
@@ -178,9 +240,14 @@ export default function PokemonSearch() {
         }
     }, [onORoff]); // Trigger submit when onORoff changes
 
+    // useEffect(() => {
+    //     (window as any).remove = remove;
+    //     (window as any).go = go;
+    // }, []);
+
     useEffect(() => {
-        (window as any).remove = remove;
-        (window as any).go = go;
+        window.remove = remove;
+        window.go = go;
     }, []);
 
     function displayFavorites() {
@@ -212,7 +279,7 @@ export default function PokemonSearch() {
         console.log(`Favorite button clicked`)
         const pokemon = currentNameOfPokemon;
         if (!pokemon) return;
-        let favorites = getFromLocalStorage();
+        const favorites = getFromLocalStorage();
         if (favorites.includes(pokemon)) {
             removeFromLocalStorage(pokemon);
         } else {
@@ -235,7 +302,7 @@ export default function PokemonSearch() {
 
 
     function updateFavoriteButton(pokemon: string) {
-        let favorites = getFromLocalStorage();
+        const favorites = getFromLocalStorage();
 
         if (favorites.includes(pokemon)) {
             setFavoriteBtn(`<svg class="w-[50px] h-[50px] fill-yellow-500" viewBox="0 0 24 24">

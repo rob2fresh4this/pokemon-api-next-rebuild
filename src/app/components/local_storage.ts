@@ -1,6 +1,6 @@
 function savedToLocalStorage(pokemon: string): void {
     console.log(`You saved this Pokémon to your favorites: ${pokemon}`);
-    let favoriteArr: string[] = getFromLocalStorage();
+    const favoriteArr: string[] = getFromLocalStorage();
     const normalizedPokemon: string = pokemon.toLowerCase(); // Normalize the Pokémon name
     
     if (favoriteArr.includes(normalizedPokemon)) {
@@ -22,10 +22,10 @@ function getFromLocalStorage(): string[] {
 }
 
 function removeFromLocalStorage(pokemon: string): void {
-    let favoriteArr: string[] = getFromLocalStorage();
+    const favoriteArr: string[] = getFromLocalStorage();
     const normalizedPokemon: string = pokemon.toLowerCase(); // Normalize the Pokémon name
     
-    let index: number = favoriteArr.indexOf(normalizedPokemon);
+    const index: number = favoriteArr.indexOf(normalizedPokemon);
     if (index !== -1) {
         favoriteArr.splice(index, 1);
         localStorage.setItem('pokemon_favorites', JSON.stringify(favoriteArr)); // Renamed key
