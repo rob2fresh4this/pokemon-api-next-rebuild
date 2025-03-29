@@ -31,5 +31,5 @@ Create a single-page Pokémon application using the Pokémon API and Next.js wit
 #### Exercise or Lab Name  
 [pokemon-api-next-rebuild]
 
-## Peer Review: 
-- 
+## Peer Review: David Monterrosa
+- Website is functional and responsive. It meets the requirements of the challenge. The out of bounds message works. Great job! The only thing I can think of that you could consider is adding a bit more padding on the bottom of your pokemon information container. Also the evolution chain for eevee is inaccurate. You may need to check the logic for that one. It only shows Vaporeon.
