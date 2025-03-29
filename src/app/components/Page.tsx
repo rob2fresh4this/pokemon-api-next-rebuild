@@ -236,14 +236,10 @@ export default function PokemonSearch() {
         console.log(`onORoff changed: ${onORoff}`);
         if (searchValue) {
             submit();
+            updateFavoriteButton(searchValue.toLowerCase());
             console.log(`it fired maybe it worked`)
         }
     }, [onORoff]); // Trigger submit when onORoff changes
-
-    // useEffect(() => {
-    //     (window as any).remove = remove;
-    //     (window as any).go = go;
-    // }, []);
 
     useEffect(() => {
         window.remove = remove;
