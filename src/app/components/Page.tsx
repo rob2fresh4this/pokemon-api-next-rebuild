@@ -100,21 +100,25 @@ export default function PokemonSearch() {
         const evolutionData = await evolutionResponse.json();
         return extractEvolutionChain(evolutionData.chain);
     }
-
+    
     function extractEvolutionChain(chain: EvolutionStage): string {
         const evolutionStages: string[] = [];
-
+    
         function getEvolutionStages(evolutionChain: EvolutionStage) {
             if (!evolutionChain) return;
             evolutionStages.push(evolutionChain.species.name); // Add current evolution stage
+    
             if (evolutionChain.evolves_to.length > 0) {
-                getEvolutionStages(evolutionChain.evolves_to[0]); // Get the next stage
+                evolutionChain.evolves_to.forEach(nextEvolution => {
+                    getEvolutionStages(nextEvolution); // Recursively get all evolution paths
+                });
             }
         }
-
+    
         getEvolutionStages(chain);
-        return evolutionStages.length > 1 ? evolutionStages.join(" → ") : "N/A"; // If only one stage, return N/A
+        return evolutionStages.length > 1 ? evolutionStages.join(" → ") : "N/A";
     }
+    
 
 
     interface Ability {
